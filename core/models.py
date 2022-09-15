@@ -11,16 +11,6 @@ class User(AbstractUser):
         STUDENT = 'STUDENT', 'Student'
     
     type = models.CharField('Type', max_length=50, choices=Types.choices, default=Types.STUDENT)
-    email = models.EmailField(
-        'Email address',
-        unique=True,
-        error_messages={
-            "unique": "A user with that email address already exists.",
-        }
-    )
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
 
 
 # PROXY MODEL MANAGERS
@@ -48,7 +38,7 @@ class Admin(User):
     class Meta:
         proxy = True
 
-    objects = AdminManager
+    objects = AdminManager()
 
 class Student(User):
     """
@@ -58,7 +48,7 @@ class Student(User):
     class Meta:
         proxy = True
 
-    objects = StudentManager
+    objects = StudentManager()
 
 class Book(models.Model):
     """
@@ -69,9 +59,16 @@ class Book(models.Model):
     author = models.CharField(max_length=255, blank=True, null=True)
     total_count = models.IntegerField(default=1)
     
-    # @property
+    @property
     def available_count(self):
-        return self.total_count - self.checkouthistory_set.filter(returned_at__isnull=True).count()
+        history_set = self.checkouthistory_set.filter(returned_at__isnull=True).all()
+        total = self.total_count
+        for history in history_set:
+            total -= history.quantity
+        return total
+    
+    def __str__(self) -> str:
+        return self.title
 
 class CheckOutHistory(models.Model):
     """
